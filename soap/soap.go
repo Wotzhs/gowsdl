@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/xml"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -196,6 +197,7 @@ type Client struct {
 	url     string
 	opts    *options
 	headers []interface{}
+	debug   bool
 }
 
 // NewClient creates new SOAP client instance
@@ -213,6 +215,11 @@ func NewClient(url string, opt ...Option) *Client {
 // AddHeader adds envelope header
 func (s *Client) AddHeader(header interface{}) {
 	s.headers = append(s.headers, header)
+}
+
+// Debug enables the logging of the soap request and response
+func (s *Client) Debug(enabled bool) {
+	s.debug = enabled
 }
 
 // Call performs HTTP POST request
@@ -236,6 +243,10 @@ func (s *Client) Call(soapAction string, request, response interface{}) error {
 
 	if err := encoder.Flush(); err != nil {
 		return err
+	}
+
+	if s.debug {
+		log.Printf("xml request - %s: %s\n", soapAction, buffer.String())
 	}
 
 	req, err := http.NewRequest("POST", s.url, buffer)
@@ -276,6 +287,10 @@ func (s *Client) Call(soapAction string, request, response interface{}) error {
 	}
 	if len(rawbody) == 0 {
 		return nil
+	}
+
+	if s.debug {
+		log.Printf("xml response - %s: %s\n", soapAction, string(rawbody))
 	}
 
 	respEnvelope := new(SOAPEnvelope)
