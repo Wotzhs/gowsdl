@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -194,10 +195,13 @@ func WithHTTPHeaders(headers map[string]string) Option {
 
 // Client is soap client
 type Client struct {
-	url     string
-	opts    *options
-	headers []interface{}
-	debug   bool
+	url       string
+	opts      *options
+	headers   []interface{}
+	debug     bool
+	debugOpts struct {
+		removeNewline bool
+	}
 }
 
 // NewClient creates new SOAP client instance
@@ -218,8 +222,9 @@ func (s *Client) AddHeader(header interface{}) {
 }
 
 // Debug enables the logging of the soap request and response
-func (s *Client) Debug(enabled bool) {
+func (s *Client) Debug(enabled, removeNewlines bool) {
 	s.debug = enabled
+	s.debugOpts.removeNewline = removeNewlines
 }
 
 // Call performs HTTP POST request
@@ -290,7 +295,12 @@ func (s *Client) Call(soapAction string, request, response interface{}) error {
 	}
 
 	if s.debug {
-		log.Printf("xml response - %s: %s\n", soapAction, string(rawbody))
+		bodyStr := string(rawbody)
+		if s.debugOpts.removeNewline {
+			bodyStr = strings.Replace(bodyStr, "\n", "", -1)
+		}
+
+		log.Printf("xml response - %s: %s\n", soapAction, bodyStr)
 	}
 
 	respEnvelope := new(SOAPEnvelope)
